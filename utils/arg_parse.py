@@ -34,7 +34,17 @@ def parse_args():
         "--strategy",
         type=str,
         default="b1",
-        help="What API call strategy is followed.",
+        choices=['CS', 'b1', 'b2', 'EN', 'BT', 'MV'],
+        help=
+        '''
+        What API call strategy is followed.
+        * CS: Coreset
+        * b1: Basic 1, Front Loading
+        * b2: Basic 2, query based on how many remaing data points are left
+        * EN: Prediction Entropy
+        * BT: Margin Sampling
+        * MV: Query by Committee
+        '''
     )
     parser.add_argument(
         "--p_strat", type=float, help="Hyperparameter for the strategy."

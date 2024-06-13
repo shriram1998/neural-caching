@@ -17,3 +17,5 @@ scripts/experiments/*
 scripts/run_*
 pre-processing/*
 figures/*
+cache/*
+output/*

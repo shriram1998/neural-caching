@@ -18,7 +18,6 @@ class handler_LLM:
         self.cost = args.cost_ext
         self.budget_models = []
         self.active = None
-        self.cache = []
         self.task = task
         self.args = args
         self.checkpoint = args.checkpoint
@@ -78,6 +77,9 @@ class handler_LLM:
     def delete_cache(self):
         del self.cache
         return
+
+    def clear_cache(self):
+        self.cache={}
 
     def save_cache(self, input):
         if self.oracle:
