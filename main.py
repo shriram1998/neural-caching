@@ -140,8 +140,17 @@ def main():
 
                 if wrap.retrain:
                     st.suffixes.append(str(budgets[len(wrap.budget_models)]) + "-")
+                neptune_log(
+                    run=run,
+                    pref=f"train/",
+                    stats={"train_step":step},
+                    epoch=st.iteration+1,
+                )
                 st.train(train_dataloader, eval_dataloader)
 
+                if args.incremental == "yes":
+                    wrap.clear_cache()
+                
                 del train_dataloader, eval_dataloader
                 if step + 1 and (step + 1) % args.retrain_freq == 0: wrap.update = False
 

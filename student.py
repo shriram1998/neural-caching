@@ -39,6 +39,7 @@ class student:
         self.task_name = args.task_name
         self.seed = args.seed
         self.target = args.target
+        self.incremental=args.incremental
         self.args = get_hparams(args, self.task_name)
         self.init_model()
         self.test = task.data["test_dataloader"]
@@ -183,8 +184,9 @@ class student:
 
         self.metric.reset()
 
-        # for every retraining, we train from scratch
-        self.init_model()
+        # reset model based on argument
+        if self.incremental=="no":
+            self.init_model()
 
         logger.info(f"  Running task {self.task_name}")
         logger.info(f"  Num examples = {len(train_dataloader.dataset)}")
@@ -214,6 +216,7 @@ class student:
             self.model, optimizer, lr_scheduler
         )
 
+        num_epochs_log=self.args.num_train_epochs
         for epoch in range(0, self.args.num_train_epochs):
             total_loss = train_epoch(
                 model=self.model,
@@ -256,8 +259,20 @@ class student:
                 }
 
             if self.early_stopper.should_finish():
+                num_epochs_log=epoch
                 break
-
+        
+        stats={
+            "epochs_trained": num_epochs_log,
+            "data_amount": self.data_amount,
+        }
+        
+        neptune_log(
+            run=self.run,
+            pref=f"train/",
+            stats=stats,
+            epoch=self.iteration,
+        )
         # copying from a cpu
         self.model.cpu()
         self.model = copy.deepcopy(self.early_stopper.get_best())

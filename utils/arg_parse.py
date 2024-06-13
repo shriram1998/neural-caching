@@ -169,6 +169,11 @@ def parse_args():
         default=0,
     )
     parser.add_argument(
+        "--incremental",
+        type=str,
+        default="no",
+    )
+    parser.add_argument(
         "--output_dir", type=str, default=None, help="Where to store the final model."
     )
     parser.add_argument(
