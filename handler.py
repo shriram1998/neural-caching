@@ -8,7 +8,9 @@ from metrics import Metric
 import pdb
 from scipy.stats import entropy
 from torch.nn import Softmax
+from accelerate.logging import get_logger
 
+logger = get_logger(__name__)
 softmax = Softmax()
 
 
@@ -79,6 +81,7 @@ class handler_LLM:
         return
 
     def clear_cache(self):
+        logger.info(f"  Cache size: {len(self.cache)}")
         self.cache={}
 
     def save_cache(self, input):

@@ -149,6 +149,7 @@ def main():
                 st.train(train_dataloader, eval_dataloader)
 
                 if args.incremental == "yes":
+                    logger.info("Clearing cache for Incremental training")
                     wrap.clear_cache()
                 
                 del train_dataloader, eval_dataloader

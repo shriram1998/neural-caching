@@ -186,6 +186,7 @@ class student:
 
         # reset model based on argument
         if self.incremental=="no":
+            logger.info(f"  Resetting model from scratch.")
             self.init_model()
 
         logger.info(f"  Running task {self.task_name}")
