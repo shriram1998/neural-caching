@@ -8,12 +8,10 @@ pre-processing/gpt_generate.ipynb
 output/*
 checkpoints/*
 checkpoints*
-scripts/experiments/bask_trial.sh
 active/*
 plots/*
 fever_exp/*
 scripts/sub*
-scripts/experiments/*
 scripts/run_*
 pre-processing/*
 figures/*

@@ -37,11 +37,11 @@ class student:
     def __init__(self, args, task, run, accelerator):
         self.cache = []
         self.task_name = args.task_name
+        self.budget_arr = [int(elem) for elem in args.budget.split(",")]
         self.seed = args.seed
         self.target = args.target
         self.incremental=args.incremental
         self.args = get_hparams(args, self.task_name)
-        self.init_model()
         self.test = task.data["test_dataloader"]
         self.test_wrong = task.data["test_wrong_dataloader"]
         self.run = run
@@ -61,6 +61,9 @@ class student:
         self.metric = Metric(self.args, soft=self.args.is_classification)
         self.metric_test = Metric(self.args, soft=self.args.is_classification)
 
+        self.init_model()
+        self.init_optimizer()
+
     def init_model(self):
         set_seeds(self.seed)
         model = get_model(self.args)
@@ -73,6 +76,22 @@ class student:
                 "seed": self.seed,
             },
         )
+    
+    def init_optimizer(self):
+        self.optimizer = load_optimizer(self.model, self.args)
+
+        #linear scheduler: inital lr to zero during training
+        #warmup=0 so no warmup phase used
+        self.lr_scheduler = get_scheduler(
+            name=self.args.lr_scheduler_type,
+            optimizer=self.optimizer,
+            num_warmup_steps=int(
+                self.args.warmup
+                * self.args.num_train_epochs
+                * self.budget_arr[-1]
+            ),
+            num_training_steps=self.args.num_train_epochs * self.budget_arr[-1],
+        )
         return
 
     def init_checkpoint(self, PATH):
@@ -81,6 +100,12 @@ class student:
         return
 
     def query(self, input):
+        '''
+        Set the model to evaluation mode.
+        Move the model to a GPU for inference.
+        Generate predictions based on the input data.
+        Handle both soft and hard label predictions.
+        '''
         torch.cuda.empty_cache()
         self.model.eval()
         self.model.cuda()
@@ -184,37 +209,40 @@ class student:
 
         self.metric.reset()
 
-        # reset model based on argument
         if self.incremental=="no":
-            logger.info(f"  Resetting model from scratch.")
+            logger.info(f"  Resetting model, optimizer and scheduler from scratch.")
+            # reset model based on argument
             self.init_model()
+
+            # Re-initialise lr_scheduler + optimizer
+            self.optimizer = load_optimizer(self.model, self.args)
+
+            #linear scheduler: inital lr to zero during training
+            #warmup=0 so no warmup phase used
+            self.lr_scheduler = get_scheduler(
+                name=self.args.lr_scheduler_type,
+                optimizer=self.optimizer,
+                num_warmup_steps=int(
+                    self.args.warmup
+                    * self.args.num_train_epochs
+                    * len(
+                        train_dataloader.dataset
+                    ) 
+                ),
+                num_training_steps=self.args.num_train_epochs
+                * len(
+                    train_dataloader.dataset
+                ),
+            )
 
         logger.info(f"  Running task {self.task_name}")
         logger.info(f"  Num examples = {len(train_dataloader.dataset)}")
 
-        self.data_amount = len(train_dataloader.dataset) + len(eval_dataloader.dataset)
-        # Re-initialise lr_scheduler + optimized
-        optimizer = load_optimizer(self.model, self.args)
-
-        lr_scheduler = get_scheduler(
-            name=self.args.lr_scheduler_type,
-            optimizer=optimizer,
-            num_warmup_steps=int(
-                self.args.warmup
-                * self.args.num_train_epochs
-                * len(
-                    train_dataloader.dataset
-                ) 
-            ),
-            num_training_steps=self.args.num_train_epochs
-            * len(
-                train_dataloader.dataset
-            ),
-        )
+        self.data_amount = len(train_dataloader.dataset) + len(eval_dataloader.dataset) 
 
         # Move to the device
-        self.model, optimizer, lr_scheduler = self.accelerator.prepare(
-            self.model, optimizer, lr_scheduler
+        self.model, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
+            self.model, self.optimizer, self.lr_scheduler
         )
 
         num_epochs_log=self.args.num_train_epochs
@@ -223,8 +251,8 @@ class student:
                 model=self.model,
                 train_dataloader=train_dataloader,
                 accelerator=self.accelerator,
-                lr_scheduler=lr_scheduler,
-                optimizer=optimizer,
+                lr_scheduler=self.lr_scheduler,
+                optimizer=self.optimizer,
                 args=self.args,
                 dic_classes=self.dic_classes,
             )
@@ -256,7 +284,7 @@ class student:
             if self.run is not None and LOG_TRAIN:
                 stats = {
                     "loss": total_loss / len(train_dataloader.dataset),
-                    "main_lr": optimizer.param_groups[0]["lr"],
+                    "main_lr": self.optimizer.param_groups[0]["lr"],
                 }
 
             if self.early_stopper.should_finish():

@@ -96,7 +96,7 @@ def main():
     for step, sample in enumerate(online_dataloader):
 
         if args.checkpoint != "-1" and step < args.n_init:
-            wrap.save_cache(sample)
+            # wrap.save_cache(sample)
             if args.strategy == "CS":
                 wrap.output = wrap.call_llm(sample)
                 wrap.obtain_embed(sample)
@@ -130,7 +130,7 @@ def main():
             ):
                 set_seeds(args.seed)
                 wrap.BT = []
-                cache = wrap.retrieve_cache()
+                cache = wrap.retrieve_cache_with_buffer()
                 train_dataloader, eval_dataloader = make_datacollator(
                     args, task.tokenizer, cache
                 )

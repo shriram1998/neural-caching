@@ -48,6 +48,7 @@ class ModularMixin(nn.Module):
         self.adapter_class = LoRALinear
         self.ac_kwargs = ac_kwargs
 
+        # If freeze is True, all parameters except those in layers named "classifier" are frozen.
         if freeze:
             for n, p in self.model.named_parameters():
                 if "classifier" in n:

@@ -27,6 +27,11 @@ def get_model(args):
 
 
 def load_optimizer(model, args):
+    '''
+    Adam optimizer with decoupled weight decay regularization. 
+    This means weight decay is applied directly to the weights after the gradient update, 
+    which often yields better results compared to the original Adam algorithm.
+    '''
     optimizer_grouped_parameters = [
         {
             "params": [p for n, p in model.named_parameters() if "alphas" not in n],
@@ -64,6 +69,7 @@ def soft_loss_weighted(logits, soft_labels, temperature=1):
         label = softmax(label / temperature)
         factor = 1
         if label[1] > label[0]:
+            #second class prob is more weighted than the first class, loss is multiplied by a facor of 10
             factor = 10
         cross_batch += factor * cross_entropy(logits[idx], label)
     return cross_batch / logits.shape[0]
@@ -103,7 +109,7 @@ def train_epoch(
         if args.soft_labels:
             if args.target == "gold":
                 loss = soft_loss(
-                    outputs[1][:, 0, dic_classes].cpu(),
+                    outputs[1][:, 0, dic_classes].cpu(), #Extracts logits for specific classes and moves them to the CPU.
                     batch.gold_soft.cpu().float(),
                     args.temperature,
                 )
@@ -116,6 +122,7 @@ def train_epoch(
         else:
             loss = outputs.loss
 
+        # Detaches the loss tensor from the computation graph, converts it to a float, and extracts the value as a Python scalar
         total_loss += loss.detach().float().item()
         losses.append(loss.detach().float().item())
 
@@ -136,6 +143,12 @@ def train_epoch(
 def evaluate_model(
     model, accelerator, eval_dataloader, metric, args, dic_classes, target
 ):
+    '''
+    Sets the model to evaluation mode.
+    Iterates over evaluation batches, generating predictions and handling different types of labels.
+    Collects and processes predictions and references across multiple processes.
+    Computes and returns the evaluation metric.
+    '''
     model.eval()
     samples_seen = 0
 

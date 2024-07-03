@@ -174,6 +174,17 @@ def parse_args():
         default="no",
     )
     parser.add_argument(
+        "--buffer_percent",
+        type=float,
+        default=1,
+        help="Percent of buffer for batch incremental learning.",
+    )
+    parser.add_argument(
+        "--buffer_policy_parameter",
+        type=str,
+        help="Buffer policy parameter to use for buffer replacement.",
+    )
+    parser.add_argument(
         "--output_dir", type=str, default=None, help="Where to store the final model."
     )
     parser.add_argument(

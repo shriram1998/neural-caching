@@ -44,6 +44,7 @@ class Metric:
 
     def add_batch(self, predictions, references):
         if not self.soft:
+            #convert tokens to string if hard labels are used
             if type(predictions[0]) != str:
                 predictions = self.tokenizer.batch_decode(
                     predictions,
@@ -111,6 +112,7 @@ def evaluate_hard(predictions, data, task):
 
 
 def qa_f1_score(prediction, ground_truth):
+    # Measures performance based on the overlap of words or tokens in free-text answers
     prediction_tokens = normalize_answer(prediction).split()
     ground_truth_tokens = normalize_answer(ground_truth).split()
     common = Counter(prediction_tokens) & Counter(ground_truth_tokens)

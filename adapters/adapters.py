@@ -70,8 +70,10 @@ class LoRALinear(ModularModule):
 
         BATCH, SEQ_LEN, D_MODEL = input.shape
 
+        # Computes the matrix product of A and  B using Einstein summation, resulting in a matrix of shape [D_MODEL, D_MODEL]
         AB = torch.einsum("ir,or->io", self.A, self.B)
 
         output = torch.einsum("bni,io->bno", input, AB)
+        #Adds the scaled low-rank adaptation output to the base linear output
         output = F.linear(input, self.weight, self.bias) + output * self.scaling
         return output

@@ -29,6 +29,9 @@ class handler_LLM:
         self.student = student
         self.student_vec = [copy.deepcopy(student.model).cpu()]
         self.cache = {}
+        self.buffer ={}
+        self.buffer_size = int(args.buffer_percent*self.budget_arr[-1])
+        self.buffer_policy_parameter = args.buffer_policy_parameter
         self.strat = args.strategy
         self.hparam = args.p_strat
         self.soft_labels = args.soft_labels
@@ -49,6 +52,8 @@ class handler_LLM:
         self.update = False
         if self.strat == "CS":
             self.encoder = copy.deepcopy(self.student.model.model).cpu()
+        logger.info(f"  Buffer size: {self.buffer_size}")
+        logger.info(f"  Buffer policy parameter: {self.buffer_policy_parameter}")
 
     def oracle_check(self, input):
         tgt = torch.flatten(input.llm_hard).tolist()
@@ -76,12 +81,85 @@ class handler_LLM:
     def retrieve_cache(self):
         return self.cache
 
+    def retrieve_cache_with_buffer(self):
+        self.combined = {
+            "input_ids": [],
+            "gold_hard": [],
+            "gold_soft": [],
+            "llm_soft": [],
+            "llm_hard": [],
+            "BT": [],
+            "EN": []
+        }
+        if "input_ids" in self.buffer:
+            self.combined["input_ids"].extend(self.buffer["input_ids"])
+            self.combined["gold_hard"].extend(self.buffer["gold_hard"])
+            if self.task.is_classification:
+                self.combined["gold_soft"].extend(self.buffer["gold_soft"])
+                self.combined["llm_soft"].extend(self.buffer["llm_soft"])
+            self.combined["llm_hard"].extend(self.buffer["llm_hard"])
+            self.combined["BT"].extend(self.buffer["BT"])
+            self.combined["EN"].extend(self.buffer["EN"])
+        if "input_ids" in self.cache:
+            self.combined["input_ids"].extend(self.cache["input_ids"])
+            self.combined["gold_hard"].extend(self.cache["gold_hard"])
+            if self.task.is_classification:
+                self.combined["gold_soft"].extend(self.cache["gold_soft"])
+                self.combined["llm_soft"].extend(self.cache["llm_soft"])
+            self.combined["llm_hard"].extend(self.cache["llm_hard"])
+            self.combined["BT"].extend(self.cache["BT"])
+            self.combined["EN"].extend(self.cache["EN"])
+        logger.info(f"  Combined size: {len(self.combined['input_ids'])}")
+        return self.combined
+
+
     def delete_cache(self):
         del self.cache
         return
 
+    def trim_buffer(self):
+        if len(self.buffer["input_ids"]) > self.buffer_size:
+            # Get the indices that would sort the BT list in descending order
+            if self.buffer_policy_parameter == "default":
+                sorted_indices=range(len(self.buffer["input_ids"]))
+            else:
+                sorted_indices = sorted(range(len(self.buffer["input_ids"])), key=lambda k: self.buffer[self.buffer_policy_parameter][k], reverse=True)
+            # Keep only the top buffer_size elements based on BT values
+            top_indices = sorted_indices[:self.buffer_size]
+            
+            # Trim each buffer list based on top_indices
+            self.buffer["input_ids"] = [self.buffer["input_ids"][i] for i in top_indices]
+            self.buffer["gold_hard"] = [self.buffer["gold_hard"][i] for i in top_indices]
+            if self.task.is_classification:
+                self.buffer["gold_soft"] = [self.buffer["gold_soft"][i] for i in top_indices]
+                self.buffer["llm_soft"] = [self.buffer["llm_soft"][i] for i in top_indices]
+            self.buffer["llm_hard"] = [self.buffer["llm_hard"][i] for i in top_indices]
+            self.buffer["BT"] = [self.buffer["BT"][i] for i in top_indices]
+            self.buffer["EN"] = [self.buffer["EN"][i] for i in top_indices]
+
     def clear_cache(self):
-        logger.info(f"  Cache size: {len(self.cache)}")
+        logger.info(f"  Cache size: {len(self.cache['input_ids'])}")
+        if "input_ids" in self.buffer:
+            self.buffer["input_ids"] += self.cache["input_ids"]
+            self.buffer["gold_hard"] += self.cache["gold_hard"]
+            if self.task.is_classification:
+                self.buffer["gold_soft"] += self.cache["gold_soft"]
+                self.buffer["llm_soft"] += self.cache["llm_soft"]
+            self.buffer["llm_hard"] += self.cache["llm_hard"]
+            self.buffer["BT"] += self.cache["BT"]
+            self.buffer["EN"] += self.cache["EN"]
+        else:
+            self.buffer["input_ids"] = self.cache["input_ids"]
+            self.buffer["gold_hard"] = self.cache["gold_hard"]
+            if self.task.is_classification:
+                self.buffer["gold_soft"] = self.cache["gold_soft"]
+                self.buffer["llm_soft"] = self.cache["llm_soft"]
+            self.buffer["llm_hard"] = self.cache["llm_hard"]
+            self.buffer["BT"]= self.cache["BT"]
+            self.buffer["EN"]= self.cache["EN"]
+        logger.info(f"  Buffer size before trim: {len(self.buffer['input_ids'])}")
+        self.trim_buffer()
+        logger.info(f"  Buffer size after trim: {len(self.buffer['input_ids'])}")
         self.cache={}
 
     def save_cache(self, input):
@@ -93,20 +171,24 @@ class handler_LLM:
         aux = aux[-1] - aux[-2]
         if self.ignore_llm > 0 and aux <= self.ignore_llm:
             return
-        if not "input_ids" in self.cache:
+        if "input_ids" in self.cache:
+            self.cache["input_ids"].append(torch.flatten(input.input_ids).tolist())
+            self.cache["gold_hard"].append(torch.flatten(input.gold_hard).tolist())
+            if self.task.is_classification:
+                self.cache["gold_soft"].append(torch.flatten(input.gold_soft).tolist())
+                self.cache["llm_soft"].append(torch.flatten(input.llm_soft).tolist())
+            self.cache["llm_hard"].append(torch.flatten(input.llm_hard).tolist())
+            self.cache["BT"].append(self.BT[-1])
+            self.cache["EN"].append(self.EN[-1])
+        else:
             self.cache["input_ids"] = [torch.flatten(input.input_ids).tolist()]
             self.cache["gold_hard"] = [torch.flatten(input.gold_hard).tolist()]
             if self.task.is_classification:
                 self.cache["gold_soft"] = [torch.flatten(input.gold_soft).tolist()]
                 self.cache["llm_soft"] = [torch.flatten(input.llm_soft).tolist()]
             self.cache["llm_hard"] = [torch.flatten(input.llm_hard).tolist()]
-            return
-        self.cache["input_ids"].append(torch.flatten(input.input_ids).tolist())
-        self.cache["gold_hard"].append(torch.flatten(input.gold_hard).tolist())
-        if self.task.is_classification:
-            self.cache["gold_soft"].append(torch.flatten(input.gold_soft).tolist())
-            self.cache["llm_soft"].append(torch.flatten(input.llm_soft).tolist())
-        self.cache["llm_hard"].append(torch.flatten(input.llm_hard).tolist())
+            self.cache["BT"]= [self.BT[-1]]
+            self.cache["EN"]= [self.EN[-1]]
 
     def decide(self, input):
         if self.oracle and not self.oracle_check(input):
