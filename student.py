@@ -30,7 +30,7 @@ import numpy as np
 
 logger = get_logger(__name__)
 
-LOG_TRAIN = False
+LOG_TRAIN = True
 
 
 class student:
@@ -82,6 +82,7 @@ class student:
 
         #linear scheduler: inital lr to zero during training
         #warmup=0 so no warmup phase used
+        logger.info(f" Num training steps: {self.args.num_train_epochs * self.budget_arr[-1]}")
         self.lr_scheduler = get_scheduler(
             name=self.args.lr_scheduler_type,
             optimizer=self.optimizer,
@@ -241,9 +242,16 @@ class student:
         self.data_amount = len(train_dataloader.dataset) + len(eval_dataloader.dataset) 
 
         # Move to the device
-        self.model, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
+        self.model, optimizer, lr_scheduler = self.accelerator.prepare(
             self.model, self.optimizer, self.lr_scheduler
         )
+
+        # for param in self.model.parameters():
+        #     logger.info(param.device)
+        # for state in self.optimizer.state.values():
+        #     for k, v in state.items():
+        #         if isinstance(v, torch.Tensor):
+        #             logger.info(v.device)
 
         num_epochs_log=self.args.num_train_epochs
         for epoch in range(0, self.args.num_train_epochs):
@@ -251,8 +259,8 @@ class student:
                 model=self.model,
                 train_dataloader=train_dataloader,
                 accelerator=self.accelerator,
-                lr_scheduler=self.lr_scheduler,
-                optimizer=self.optimizer,
+                lr_scheduler=lr_scheduler,
+                optimizer=optimizer,
                 args=self.args,
                 dic_classes=self.dic_classes,
             )
@@ -286,6 +294,7 @@ class student:
                     "loss": total_loss / len(train_dataloader.dataset),
                     "main_lr": self.optimizer.param_groups[0]["lr"],
                 }
+                logger.info(f"Loss: {stats['loss']}, LR: {stats['main_lr']}")
 
             if self.early_stopper.should_finish():
                 num_epochs_log=epoch

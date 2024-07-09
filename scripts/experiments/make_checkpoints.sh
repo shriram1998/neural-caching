@@ -7,11 +7,11 @@ export BASE_MODEL=t5-base
 
 for SEED in 0 1 2
 do
-    for RETRAIN_FREQ in 100 # AIXO HO HAURE DE CANVIAR!!
+    for RETRAIN_FREQ in 1000 # AIXO HO HAURE DE CANVIAR!!
     do
         for BUDGET in 1000
         do
-            for TASK_NAME in isear #fever_mistral openbook_mistral fever_llama openbook_llama #cr ag_news isear_llama rt-polarity_llama fever_llama openbook_llama isear_mistral rt-polarity_mistral fever_mistral openbook_mistral
+            for TASK_NAME in openbook #fever_mistral openbook_mistral fever_llama openbook_llama #cr ag_news isear_llama rt-polarity_llama fever_llama openbook_llama isear_mistral rt-polarity_mistral fever_mistral openbook_mistral
             do 
                 for STRATEGY in b1
                 do
@@ -22,7 +22,7 @@ do
                     export BUDGET
                     export RETRAIN_FREQ
                     export TAGS=make_checkpoints_cirrus
-                    export N_INIT=100 # HAURE DANAR AMB CUIDAO!!!
+                    export N_INIT=1000 # HAURE DANAR AMB CUIDAO!!!
 
                     if [ $STRATEGY == "b1" ]
                     then

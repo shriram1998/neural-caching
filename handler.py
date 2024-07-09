@@ -138,8 +138,8 @@ class handler_LLM:
             self.buffer["EN"] = [self.buffer["EN"][i] for i in top_indices]
 
     def clear_cache(self):
-        logger.info(f"  Cache size: {len(self.cache['input_ids'])}")
-        if "input_ids" in self.buffer:
+        logger.info(f"  Cache size: {len(self.cache.get('input_ids', []))}")
+        if "input_ids" in self.buffer and "input_ids" in self.cache:
             self.buffer["input_ids"] += self.cache["input_ids"]
             self.buffer["gold_hard"] += self.cache["gold_hard"]
             if self.task.is_classification:
@@ -148,7 +148,7 @@ class handler_LLM:
             self.buffer["llm_hard"] += self.cache["llm_hard"]
             self.buffer["BT"] += self.cache["BT"]
             self.buffer["EN"] += self.cache["EN"]
-        else:
+        elif "input_ids" in self.cache:
             self.buffer["input_ids"] = self.cache["input_ids"]
             self.buffer["gold_hard"] = self.cache["gold_hard"]
             if self.task.is_classification:
@@ -157,9 +157,9 @@ class handler_LLM:
             self.buffer["llm_hard"] = self.cache["llm_hard"]
             self.buffer["BT"]= self.cache["BT"]
             self.buffer["EN"]= self.cache["EN"]
-        logger.info(f"  Buffer size before trim: {len(self.buffer['input_ids'])}")
+        logger.info(f"  Buffer size before trim: {len(self.buffer.get('input_ids', []))}")
         self.trim_buffer()
-        logger.info(f"  Buffer size after trim: {len(self.buffer['input_ids'])}")
+        logger.info(f"  Buffer size after trim: {len(self.buffer.get('input_ids', []))}")
         self.cache={}
 
     def save_cache(self, input):

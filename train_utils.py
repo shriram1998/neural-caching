@@ -93,6 +93,8 @@ def train_epoch(
     freq = 100
 
     for step, batch in enumerate(train_dataloader):
+        optimizer.zero_grad()
+
         if args.target == "gold":
             outputs = model(
                 input_ids=batch.input_ids,
@@ -134,8 +136,6 @@ def train_epoch(
 
         optimizer.step()
         lr_scheduler.step()
-
-        optimizer.zero_grad()
 
     return total_loss
 

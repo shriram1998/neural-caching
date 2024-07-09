@@ -4,18 +4,20 @@
 # export BASE_MODEL=t5-base
 
 export RETRAIN_FREQ=1000
-export BUDGET=3500
+export BUDGET=2000
 export TASK_NAME=isear
 export N_INIT=100
 export SEED=0
 export CHECKPOINT=${SEED}_${N_INIT}
 
 export PART=cirrus
-export TAGS=CIRRUS_BATCH_INC_Test
+export TAGS=Linear_Test
 export INCREMENTAL=yes
-export BUFFER_PERCENT=0.05
+export BUFFER_PERCENT=1.0
 export BUFFER_POLICY_PARAMETER=default
-export STRATEGY=BT
-# export P_STRAT=0
-export P_STRAT=5
+export STRATEGY=b1
+export P_STRAT=0
+
+# export STRATEGY=BT
+# export P_STRAT=5
 sbatch --export=ALL scripts/sub_$PART.sh
