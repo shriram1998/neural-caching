@@ -6,14 +6,14 @@ export PART=cirrus
 export BASE_MODEL=t5-base
 export INCREMENTAL=yes
 # export EARLY_STOP=10
-# export EPOCHS=60
+# export EPOCHS=1
 
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
     for BUFFER_POLICY_PARAMETER in default
     do
-        for BUFFER_PERCENT in 1.0
+        for BUFFER_PERCENT in 0.0
         do
             for RETRAIN_FREQ in 100
             do

@@ -41,6 +41,7 @@ class student:
         self.seed = args.seed
         self.target = args.target
         self.incremental=args.incremental
+        self.learning_rate = args.learning_rate
         self.args = get_hparams(args, self.task_name)
         self.test = task.data["test_dataloader"]
         self.test_wrong = task.data["test_wrong_dataloader"]
@@ -62,7 +63,6 @@ class student:
         self.metric_test = Metric(self.args, soft=self.args.is_classification)
 
         self.init_model()
-        self.init_optimizer()
 
     def init_model(self):
         set_seeds(self.seed)
@@ -76,16 +76,17 @@ class student:
                 "seed": self.seed,
             },
         )
+        return
     
-    def init_optimizer(self):
-        self.optimizer = load_optimizer(self.model, self.args)
+    def init_optimizer_continual(self):
+        optimizer = load_optimizer(self.model, self.args, self.learning_rate)
 
         #linear scheduler: inital lr to zero during training
         #warmup=0 so no warmup phase used
         logger.info(f" Num training steps: {self.args.num_train_epochs * self.budget_arr[-1]}")
-        self.lr_scheduler = get_scheduler(
+        lr_scheduler = get_scheduler(
             name=self.args.lr_scheduler_type,
-            optimizer=self.optimizer,
+            optimizer=optimizer,
             num_warmup_steps=int(
                 self.args.warmup
                 * self.args.num_train_epochs
@@ -93,7 +94,7 @@ class student:
             ),
             num_training_steps=self.args.num_train_epochs * self.budget_arr[-1],
         )
-        return
+        return optimizer, lr_scheduler
 
     def init_checkpoint(self, PATH):
         self.model.load_state_dict(torch.load(PATH))
@@ -216,13 +217,13 @@ class student:
             self.init_model()
 
             # Re-initialise lr_scheduler + optimizer
-            self.optimizer = load_optimizer(self.model, self.args)
+            optimizer = load_optimizer(self.model, self.args)
 
             #linear scheduler: inital lr to zero during training
             #warmup=0 so no warmup phase used
-            self.lr_scheduler = get_scheduler(
+            lr_scheduler = get_scheduler(
                 name=self.args.lr_scheduler_type,
-                optimizer=self.optimizer,
+                optimizer=optimizer,
                 num_warmup_steps=int(
                     self.args.warmup
                     * self.args.num_train_epochs
@@ -235,6 +236,9 @@ class student:
                     train_dataloader.dataset
                 ),
             )
+        else:
+            logger.info(f"  Resetting optimizer and scheduler for Continual learning.")
+            optimizer, lr_scheduler = self.init_optimizer_continual()
 
         logger.info(f"  Running task {self.task_name}")
         logger.info(f"  Num examples = {len(train_dataloader.dataset)}")
@@ -243,7 +247,7 @@ class student:
 
         # Move to the device
         self.model, optimizer, lr_scheduler = self.accelerator.prepare(
-            self.model, self.optimizer, self.lr_scheduler
+            self.model, optimizer, lr_scheduler
         )
 
         # for param in self.model.parameters():
@@ -264,6 +268,7 @@ class student:
                 args=self.args,
                 dic_classes=self.dic_classes,
             )
+            self.learning_rate=optimizer.param_groups[0]["lr"]
 
             if (
                 epoch % self.args.eval_every_epochs == 0
@@ -292,7 +297,7 @@ class student:
             if self.run is not None and LOG_TRAIN:
                 stats = {
                     "loss": total_loss / len(train_dataloader.dataset),
-                    "main_lr": self.optimizer.param_groups[0]["lr"],
+                    "main_lr": optimizer.param_groups[0]["lr"],
                 }
                 logger.info(f"Loss: {stats['loss']}, LR: {stats['main_lr']}")
 

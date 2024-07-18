@@ -26,21 +26,22 @@ def get_model(args):
     return model
 
 
-def load_optimizer(model, args):
+def load_optimizer(model, args, learning_rate=None):
     '''
     Adam optimizer with decoupled weight decay regularization. 
     This means weight decay is applied directly to the weights after the gradient update, 
     which often yields better results compared to the original Adam algorithm.
     '''
+    lr=learning_rate if learning_rate is not None else args.learning_rate
     optimizer_grouped_parameters = [
         {
             "params": [p for n, p in model.named_parameters() if "alphas" not in n],
-            "lr": args.learning_rate,
+            "lr": lr,
             "weight_decay": args.weight_decay,
         },
     ]
 
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
+    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=lr)
     return optimizer
 
 def finish_training(accelerator, model, eval_metric, args):
@@ -93,7 +94,6 @@ def train_epoch(
     freq = 100
 
     for step, batch in enumerate(train_dataloader):
-        optimizer.zero_grad()
 
         if args.target == "gold":
             outputs = model(
@@ -136,6 +136,8 @@ def train_epoch(
 
         optimizer.step()
         lr_scheduler.step()
+
+        optimizer.zero_grad()
 
     return total_loss
 
