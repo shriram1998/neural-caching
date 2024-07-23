@@ -9,6 +9,9 @@ from metrics import Metric
 import numpy as np
 from tqdm import tqdm
 from torch.nn import CrossEntropyLoss, Softmax
+# from fvcore.nn import FlopCountAnalysis
+# from torchprofile import profile_macs
+from calflops import calculate_flops
 
 from utils import set_seeds
 
@@ -58,7 +61,7 @@ def soft_loss(logits, soft_labels, temperature=1):
     cross_batch = 0
     for idx, label in enumerate(soft_labels):
         logits[idx] = softmax(logits[idx])
-        label = softmax(label / temperature)
+        label = softmax((label / temperature))
         cross_batch += cross_entropy(logits[idx], label)
     return cross_batch / logits.shape[0]
 
@@ -75,6 +78,13 @@ def soft_loss_weighted(logits, soft_labels, temperature=1):
         cross_batch += factor * cross_entropy(logits[idx], label)
     return cross_batch / logits.shape[0]
 
+def parse_flops(flops_str):
+    # Convert the string to a float representing FLOPs in the appropriate unit
+    units = {"T": 1e12, "G": 1e9, "M": 1e6, "K": 1e3}
+    for unit in units:
+        if unit in flops_str:
+            return float(flops_str.replace(unit + "FLOPS", "").strip()) * units[unit]
+    return float(flops_str.replace("FLOPs", "").strip())
 
 def train_epoch(
     model,
@@ -88,11 +98,12 @@ def train_epoch(
     model.train()
     set_seeds(args.seed)
     total_loss = 0
+    total_flops = 0
 
     losses = []
 
     freq = 100
-
+    
     for step, batch in enumerate(train_dataloader):
 
         if args.target == "gold":
@@ -107,6 +118,19 @@ def train_epoch(
                 attention_mask=batch.attention_mask,
                 labels=batch.llm_hard,
             )
+        
+        # macs = profile_macs(model, (batch['input_ids'], batch['attention_mask'], batch['gold_hard'] if args.target == "gold" else batch['llm_hard']))
+        # flops = macs * 2
+        # flops = FlopCountAnalysis(model, (batch.input_ids, batch.attention_mask, batch.gold_hard if args.target == "gold" else batch.llm_hard)).total()
+        
+        flops, macs, params = calculate_flops(model=model,
+                                              kwargs={
+                                                  "input_ids": batch.input_ids,
+                                                  "attention_mask": batch.attention_mask,
+                                                  "labels": batch.gold_hard if args.target == "gold" else batch.llm_hard
+                                              },
+                                              print_results=False)
+        total_flops += parse_flops(flops) * 3  # Multiply by 3 to account for both forward and backward pass
 
         if args.soft_labels:
             if args.target == "gold":
@@ -139,7 +163,7 @@ def train_epoch(
 
         optimizer.zero_grad()
 
-    return total_loss
+    return total_loss, total_flops
 
 
 def evaluate_model(

@@ -258,8 +258,11 @@ class student:
         #             logger.info(v.device)
 
         num_epochs_log=self.args.num_train_epochs
+        total_flops_train = 0
+        start_time = time.time()
+
         for epoch in range(0, self.args.num_train_epochs):
-            total_loss = train_epoch(
+            total_loss, total_flops_epoch = train_epoch(
                 model=self.model,
                 train_dataloader=train_dataloader,
                 accelerator=self.accelerator,
@@ -268,6 +271,7 @@ class student:
                 args=self.args,
                 dic_classes=self.dic_classes,
             )
+            total_flops_train += total_flops_epoch
             self.learning_rate=optimizer.param_groups[0]["lr"]
 
             if (
@@ -287,7 +291,7 @@ class student:
                 self.early_stopper.update(eval_metrics[0], self.model)
                 self.model.cuda()
 
-                log_msg = f"Epoch {epoch} -----> Average_Train_loss: {total_loss / len(train_dataloader.dataset)} ===== Eval_metric: {eval_metrics[0]}"
+                log_msg = f"    Epoch {epoch} -----> Average_Train_loss: {total_loss / len(train_dataloader.dataset)} ===== Eval_metric: {eval_metrics[0]}"
                 logger.info(log_msg)
 
                 if self.run is not None and LOG_TRAIN:
@@ -299,17 +303,26 @@ class student:
                     "loss": total_loss / len(train_dataloader.dataset),
                     "main_lr": optimizer.param_groups[0]["lr"],
                 }
-                logger.info(f"Loss: {stats['loss']}, LR: {stats['main_lr']}")
+                logger.info(f"  Loss: {stats['loss']}, LR: {stats['main_lr']}")
 
             if self.early_stopper.should_finish():
                 num_epochs_log=epoch
                 break
         
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
         stats={
             "epochs_trained": num_epochs_log,
             "data_amount": self.data_amount,
+            "train_examples": len(train_dataloader.dataset),
+            "eval_examples": len(eval_dataloader.dataset),
+            "flops": total_flops_train,
+            "time_elapsed": elapsed_time
         }
         
+        logger.info(f"  Total flops for this training: {total_flops_train:.2e}")
+
         neptune_log(
             run=self.run,
             pref=f"train/",

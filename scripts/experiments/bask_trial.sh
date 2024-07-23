@@ -13,11 +13,11 @@ for SEED in 0 1 2
 do
     for BUFFER_POLICY_PARAMETER in default
     do
-        for BUFFER_PERCENT in 0.0
+        for BUFFER_PERCENT in 0.0 0.25 0.5 0.75 1.0
         do
-            for RETRAIN_FREQ in 100
+            for RETRAIN_FREQ in 1000
             do
-                for BUDGET in 1000 1500 2000 2500 3000 3500
+                for BUDGET in 1000 2000 3000
                 do  # cr ag_news isear_llama rt-polarity_llama isear_mistral rt-polarity_mistral
                     for TASK_NAME in isear #openbook #sst2 fever_mistral openbook_mistral
                     do 
