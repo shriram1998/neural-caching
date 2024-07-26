@@ -12,4 +12,4 @@ protobuf
 neptune-client
 rouge
 backoff
-torchprofile
+calflops

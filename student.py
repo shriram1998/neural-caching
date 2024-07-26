@@ -61,7 +61,8 @@ class student:
 
         self.metric = Metric(self.args, soft=self.args.is_classification)
         self.metric_test = Metric(self.args, soft=self.args.is_classification)
-
+        self.total_flops=0
+        self.total_time_elapsed=0
         self.init_model()
 
     def init_model(self):
@@ -329,6 +330,10 @@ class student:
             stats=stats,
             epoch=self.iteration,
         )
+
+        self.total_flops+=total_flops_train
+        self.total_time_elapsed+=elapsed_time
+        
         # copying from a cpu
         self.model.cpu()
         self.model = copy.deepcopy(self.early_stopper.get_best())

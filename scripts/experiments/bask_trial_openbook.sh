@@ -4,18 +4,18 @@ export TARGET=llm
 export DATA_PATH=/work/sc126/sc126/s2598967/cachellm/cache_llm/
 export PART=cirrus
 export BASE_MODEL=t5-base
-export INCREMENTAL=no
+export INCREMENTAL=yes
 
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
     for BUFFER_POLICY_PARAMETER in default
     do
-        for BUFFER_PERCENT in 1.0
+        for BUFFER_PERCENT in 0.0 0.5 1.0
         do
-            for RETRAIN_FREQ in 100
+            for RETRAIN_FREQ in 1000
             do
-                for BUDGET in 1000 1500 2000 2500 3000 3500
+                for BUDGET in 1500 2500 3500
                 do  # cr ag_news isear_llama rt-polarity_llama isear_mistral rt-polarity_mistral
                     for TASK_NAME in openbook #openbook #sst2 fever_mistral openbook_mistral
                     do 

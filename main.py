@@ -169,6 +169,12 @@ def main():
                 send_update = False
                 if step == len(online_dataloader) - 1:
                     log_final(run)
+                    neptune_log(
+                        run=run,
+                        pref=f"train/",
+                        stats={"total_flops": st.total_flops, "total_time_elapsed": st.total_time_elapsed},
+                        epoch=0,
+                    )
 
     if run is not None:
         run.stop()
