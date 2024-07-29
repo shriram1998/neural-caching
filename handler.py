@@ -88,8 +88,8 @@ class handler_LLM:
             "gold_soft": [],
             "llm_soft": [],
             "llm_hard": [],
-            "BT": [],
-            "EN": []
+            # "BT": [],
+            # "EN": []
         }
         if "input_ids" in self.buffer:
             self.combined["input_ids"].extend(self.buffer["input_ids"])
@@ -98,8 +98,8 @@ class handler_LLM:
                 self.combined["gold_soft"].extend(self.buffer["gold_soft"])
                 self.combined["llm_soft"].extend(self.buffer["llm_soft"])
             self.combined["llm_hard"].extend(self.buffer["llm_hard"])
-            self.combined["BT"].extend(self.buffer["BT"])
-            self.combined["EN"].extend(self.buffer["EN"])
+            # self.combined["BT"].extend(self.buffer["BT"])
+            # self.combined["EN"].extend(self.buffer["EN"])
         if "input_ids" in self.cache:
             self.combined["input_ids"].extend(self.cache["input_ids"])
             self.combined["gold_hard"].extend(self.cache["gold_hard"])
@@ -107,8 +107,8 @@ class handler_LLM:
                 self.combined["gold_soft"].extend(self.cache["gold_soft"])
                 self.combined["llm_soft"].extend(self.cache["llm_soft"])
             self.combined["llm_hard"].extend(self.cache["llm_hard"])
-            self.combined["BT"].extend(self.cache["BT"])
-            self.combined["EN"].extend(self.cache["EN"])
+            # self.combined["BT"].extend(self.cache["BT"])
+            # self.combined["EN"].extend(self.cache["EN"])
         logger.info(f"  Combined size: {len(self.combined['input_ids'])}")
         return self.combined
 
@@ -134,8 +134,8 @@ class handler_LLM:
                 self.buffer["gold_soft"] = [self.buffer["gold_soft"][i] for i in top_indices]
                 self.buffer["llm_soft"] = [self.buffer["llm_soft"][i] for i in top_indices]
             self.buffer["llm_hard"] = [self.buffer["llm_hard"][i] for i in top_indices]
-            self.buffer["BT"] = [self.buffer["BT"][i] for i in top_indices]
-            self.buffer["EN"] = [self.buffer["EN"][i] for i in top_indices]
+            # self.buffer["BT"] = [self.buffer["BT"][i] for i in top_indices]
+            # self.buffer["EN"] = [self.buffer["EN"][i] for i in top_indices]
 
     def clear_cache(self):
         logger.info(f"  Cache size: {len(self.cache.get('input_ids', []))}")
@@ -146,8 +146,8 @@ class handler_LLM:
                 self.buffer["gold_soft"] += self.cache["gold_soft"]
                 self.buffer["llm_soft"] += self.cache["llm_soft"]
             self.buffer["llm_hard"] += self.cache["llm_hard"]
-            self.buffer["BT"] += self.cache["BT"]
-            self.buffer["EN"] += self.cache["EN"]
+            # self.buffer["BT"] += self.cache["BT"]
+            # self.buffer["EN"] += self.cache["EN"]
         elif "input_ids" in self.cache:
             self.buffer["input_ids"] = self.cache["input_ids"]
             self.buffer["gold_hard"] = self.cache["gold_hard"]
@@ -155,8 +155,8 @@ class handler_LLM:
                 self.buffer["gold_soft"] = self.cache["gold_soft"]
                 self.buffer["llm_soft"] = self.cache["llm_soft"]
             self.buffer["llm_hard"] = self.cache["llm_hard"]
-            self.buffer["BT"]= self.cache["BT"]
-            self.buffer["EN"]= self.cache["EN"]
+            # self.buffer["BT"]= self.cache["BT"]
+            # self.buffer["EN"]= self.cache["EN"]
         logger.info(f"  Buffer size before trim: {len(self.buffer.get('input_ids', []))}")
         self.trim_buffer()
         logger.info(f"  Buffer size after trim: {len(self.buffer.get('input_ids', []))}")
@@ -178,8 +178,8 @@ class handler_LLM:
                 self.cache["gold_soft"].append(torch.flatten(input.gold_soft).tolist())
                 self.cache["llm_soft"].append(torch.flatten(input.llm_soft).tolist())
             self.cache["llm_hard"].append(torch.flatten(input.llm_hard).tolist())
-            self.cache["BT"].append(self.BT[-1])
-            self.cache["EN"].append(self.EN[-1])
+            # self.cache["BT"].append(self.BT[-1])
+            # self.cache["EN"].append(self.EN[-1])
         else:
             self.cache["input_ids"] = [torch.flatten(input.input_ids).tolist()]
             self.cache["gold_hard"] = [torch.flatten(input.gold_hard).tolist()]
@@ -187,8 +187,8 @@ class handler_LLM:
                 self.cache["gold_soft"] = [torch.flatten(input.gold_soft).tolist()]
                 self.cache["llm_soft"] = [torch.flatten(input.llm_soft).tolist()]
             self.cache["llm_hard"] = [torch.flatten(input.llm_hard).tolist()]
-            self.cache["BT"]= [self.BT[-1]]
-            self.cache["EN"]= [self.EN[-1]]
+            # self.cache["BT"]= [self.BT[-1]]
+            # self.cache["EN"]= [self.EN[-1]]
 
     def decide(self, input):
         if self.oracle and not self.oracle_check(input):
