@@ -3,6 +3,7 @@ from train_utils import (
     load_optimizer,
     evaluate_model,
     train_epoch,
+    compute_fisher,
     get_hparams,
     get_model,
 )
@@ -41,6 +42,7 @@ class student:
         self.seed = args.seed
         self.target = args.target
         self.incremental=args.incremental
+        self.ewc=args.ewc
         self.learning_rate = args.learning_rate
         self.args = get_hparams(args, self.task_name)
         self.test = task.data["test_dataloader"]
@@ -63,6 +65,8 @@ class student:
         self.metric_test = Metric(self.args, soft=self.args.is_classification)
         self.total_flops=0
         self.total_time_elapsed=0
+        self.fisher_matrix=None
+        self.original_params=None
         self.init_model()
 
     def init_model(self):
@@ -270,6 +274,8 @@ class student:
                 lr_scheduler=lr_scheduler,
                 optimizer=optimizer,
                 args=self.args,
+                fisher_matrix=self.fisher_matrix,
+                original_params=self.original_params,
                 dic_classes=self.dic_classes,
             )
             total_flops_train += total_flops_epoch
@@ -310,9 +316,9 @@ class student:
                 num_epochs_log=epoch
                 break
         
+        # log metrics
         end_time = time.time()
         elapsed_time = end_time - start_time
-
         stats={
             "epochs_trained": num_epochs_log,
             "data_amount": self.data_amount,
@@ -321,9 +327,7 @@ class student:
             "flops": total_flops_train,
             "time_elapsed": elapsed_time
         }
-        
         logger.info(f"  Total flops for this training: {total_flops_train:.2e}")
-
         neptune_log(
             run=self.run,
             pref=f"train/",
@@ -333,12 +337,21 @@ class student:
 
         self.total_flops+=total_flops_train
         self.total_time_elapsed+=elapsed_time
-        
+
         # copying from a cpu
         self.model.cpu()
         self.model = copy.deepcopy(self.early_stopper.get_best())
         self.model = self.early_stopper.get_best().cuda()
         del self.early_stopper.best_model
+
+        self.fisher_matrix=compute_fisher(model=self.model,dataloader=train_dataloader, accelerator=self.accelerator, args=self.args, dic_classes=self.dic_classes)
+        self.original_params = {name: param.clone().detach() for name, param in self.model.named_parameters()}
+
+        # if self.original_params is not None:
+        #     for name in self.original_params:
+        #         self.original_params[name] += original_params[name]
+        #         self.original_params[name] /= 2
+
 
         self.evaluate()
         if self.save_checkpoint != "no":

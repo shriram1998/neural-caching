@@ -8,6 +8,7 @@ from task import get_task
 from metrics import Metric
 import numpy as np
 from tqdm import tqdm
+from torch import nn
 from torch.nn import CrossEntropyLoss, Softmax
 # from fvcore.nn import FlopCountAnalysis
 # from torchprofile import profile_macs
@@ -65,6 +66,35 @@ def soft_loss(logits, soft_labels, temperature=1):
         cross_batch += cross_entropy(logits[idx], label)
     return cross_batch / logits.shape[0]
 
+class EWCLoss(nn.Module):
+    def __init__(self, model, fisher_matrix, original_params, lambda_ewc=0.4):
+        super(EWCLoss, self).__init__()
+        self.model = model
+        self.fisher_matrix = fisher_matrix
+        self.original_params = original_params
+        self.lambda_ewc = lambda_ewc
+
+    def forward(self, ce_loss):
+        if self.fisher_matrix is None or self.original_params is None:
+            return ce_loss, 0
+
+        ewc_loss = 0.0
+        ewc_flops = 0
+        # Vectorize the EWC loss calculation
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                fisher = self.fisher_matrix[name]
+                original_param = self.original_params[name]
+                ewc_loss_term = fisher * (param - original_param) ** 2
+                ewc_loss += torch.sum(ewc_loss_term)
+
+                # Calculate FLOPs for the EWC operations
+                ewc_flops += fisher.numel() * 2  # Subtraction and squaring
+                ewc_flops += fisher.numel()  # Multiplication with fisher
+                ewc_flops += 1  # Summation
+
+        total_loss = ce_loss + self.lambda_ewc * ewc_loss
+        return total_loss, ewc_flops
 
 def soft_loss_weighted(logits, soft_labels, temperature=1):
     cross_batch = 0
@@ -93,6 +123,8 @@ def train_epoch(
     lr_scheduler,
     optimizer,
     args,
+    fisher_matrix,
+    original_params,
     dic_classes=None,
 ):
     model.train()
@@ -103,7 +135,9 @@ def train_epoch(
     losses = []
 
     freq = 100
-    
+
+    ewc_loss = EWCLoss(model, fisher_matrix, original_params, lambda_ewc=0.4)
+
     for step, batch in enumerate(train_dataloader):
 
         if args.target == "gold":
@@ -134,19 +168,27 @@ def train_epoch(
 
         if args.soft_labels:
             if args.target == "gold":
-                loss = soft_loss(
+                soft_loss_train = soft_loss(
                     outputs[1][:, 0, dic_classes].cpu(), #Extracts logits for specific classes and moves them to the CPU.
                     batch.gold_soft.cpu().float(),
                     args.temperature,
                 )
             else:
-                loss = soft_loss(
+                soft_loss_train = soft_loss(
                     outputs[1][:, 0, dic_classes].cpu(),
                     batch.llm_soft.cpu(),
                     args.temperature,
                 )
         else:
-            loss = outputs.loss
+            soft_loss_train = outputs.loss
+
+        if args.ewc=="yes":
+            # print("Using EWC loss")
+            loss, ewc_flops = ewc_loss(soft_loss_train)
+            total_flops += ewc_flops
+        else:
+            # print("Not using EWC loss")
+            loss=soft_loss_train
 
         # Detaches the loss tensor from the computation graph, converts it to a float, and extracts the value as a Python scalar
         total_loss += loss.detach().float().item()
@@ -165,7 +207,58 @@ def train_epoch(
 
     return total_loss, total_flops
 
+def compute_fisher(model, dataloader, accelerator, args, dic_classes, fisher_matrix_past=None):
+    model.eval()
+    fisher_matrix = {}
 
+    for name, param in model.named_parameters():
+        fisher_matrix[name] = torch.zeros_like(param)
+
+    for batch in dataloader:
+        if args.target == "gold":
+            outputs = model(
+                input_ids=batch.input_ids,
+                attention_mask=batch.attention_mask,
+                labels=batch.gold_hard,
+            )
+        else:
+            outputs = model(
+                input_ids=batch.input_ids,
+                attention_mask=batch.attention_mask,
+                labels=batch.llm_hard,
+            )
+        if args.soft_labels:
+            if args.target == "gold":
+                loss = soft_loss(
+                    outputs[1][:, 0, dic_classes].cpu(),
+                    batch.gold_soft.cpu().float(),
+                    args.temperature,
+                )
+            else:
+                loss = soft_loss(
+                    outputs[1][:, 0, dic_classes].cpu(),
+                    batch.llm_soft.cpu(),
+                    args.temperature,
+                )
+        else:
+            loss = outputs.loss
+
+        accelerator.backward(loss)
+
+        for name, param in model.named_parameters():
+            if param.grad is not None:
+                fisher_matrix[name] += param.grad ** 2
+
+    for name in fisher_matrix:
+        fisher_matrix[name] /= len(dataloader)
+
+    if fisher_matrix_past is not None:
+        for name in fisher_matrix:
+            fisher_matrix[name] += fisher_matrix_past[name]
+            fisher_matrix[name] /= 2
+        
+    return fisher_matrix
+    
 def evaluate_model(
     model, accelerator, eval_dataloader, metric, args, dic_classes, target
 ):

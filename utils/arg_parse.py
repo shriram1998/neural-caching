@@ -174,6 +174,11 @@ def parse_args():
         default="no",
     )
     parser.add_argument(
+        "--ewc",
+        type=str,
+        default="no",
+    )
+    parser.add_argument(
         "--buffer_percent",
         type=float,
         default=1,
