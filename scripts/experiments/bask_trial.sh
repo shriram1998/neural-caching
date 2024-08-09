@@ -6,13 +6,11 @@ export PART=cirrus
 export BASE_MODEL=t5-base
 export INCREMENTAL=yes
 export EWC=yes
-# export EARLY_STOP=10
-# export EPOCHS=1
-
+export BUFFER_POLICY_PARAMETER=default
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
-    for BUFFER_POLICY_PARAMETER in default
+    for EWC_LAMBDA in 0.2 0.6
     do
         for BUFFER_PERCENT in 0.0
         do
@@ -22,8 +20,9 @@ do
                 do  # cr ag_news isear_llama rt-polarity_llama isear_mistral rt-polarity_mistral
                     for TASK_NAME in isear #openbook #sst2 fever_mistral openbook_mistral
                     do 
-                        for STRATEGY in b1 BT #els deixo pel feturo!! 108 jobs funciona be
+                        for STRATEGY in b1 #els deixo pel feturo!! 108 jobs funciona be
                         do
+                            export EWC_LAMBDA
                             export SEED
                             export BUFFER_POLICY_PARAMETER
                             export BUFFER_PERCENT
@@ -32,7 +31,7 @@ do
                             export BUDGET
                             export RETRAIN_FREQ
                             export N_INIT=100
-                            export TAGS=RT_POLARITY
+                            export TAGS=BATCH_INC_LINEAR
                             export CHECKPOINT=${SEED}_${N_INIT}
 
                             if [ $STRATEGY == "b1" ]

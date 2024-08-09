@@ -131,8 +131,9 @@ def main():
                 set_seeds(args.seed)
                 wrap.BT = []
                 cache = wrap.retrieve_cache_with_buffer()
-                # if len(cache)<=20:
-                #     continue
+                print("Cache size: ", len(cache))
+                if len(cache)<2:
+                    continue
                 train_dataloader, eval_dataloader = make_datacollator(
                     args, task.tokenizer, cache
                 )

@@ -190,6 +190,12 @@ def parse_args():
         help="Buffer policy parameter to use for buffer replacement.",
     )
     parser.add_argument(
+        "--ewc_lambda",
+        type=float,
+        default=0.4,
+        help="EWC lambda.",
+    )
+    parser.add_argument(
         "--output_dir", type=str, default=None, help="Where to store the final model."
     )
     parser.add_argument(

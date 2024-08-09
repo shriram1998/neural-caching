@@ -135,8 +135,8 @@ def train_epoch(
     losses = []
 
     freq = 100
-
-    ewc_loss = EWCLoss(model, fisher_matrix, original_params, lambda_ewc=0.4)
+    print("EWC lambda: ", args.ewc_lambda)
+    ewc_loss = EWCLoss(model, fisher_matrix, original_params, lambda_ewc=args.ewc_lambda)
 
     for step, batch in enumerate(train_dataloader):
 
