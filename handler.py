@@ -122,6 +122,8 @@ class handler_LLM:
             # Get the indices that would sort the BT list in descending order
             if self.buffer_policy_parameter == "default":
                 sorted_indices=range(len(self.buffer["input_ids"]))
+            elif self.buffer_policy_parameter == "random":
+                sorted_indices = random.sample(range(len(self.buffer["input_ids"])), len(self.buffer["input_ids"]))
             else:
                 sorted_indices = sorted(range(len(self.buffer["input_ids"])), key=lambda k: self.buffer[self.buffer_policy_parameter][k], reverse=True)
             # Keep only the top buffer_size elements based on BT values
