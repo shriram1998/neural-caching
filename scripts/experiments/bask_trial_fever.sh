@@ -5,9 +5,9 @@ export DATA_PATH=/work/sc126/sc126/s2598967/cachellm/cache_llm/
 export PART=cirrus
 export BASE_MODEL=t5-base
 export INCREMENTAL=yes
-# export EWC=yes
+export SOFT_LABELS=0
 
-#rf100 inc, replay done
+# export EWC=yes
 
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
@@ -22,7 +22,7 @@ do
                 do  # cr ag_news isear_llama rt-polarity_llama isear_mistral rt-polarity_mistral
                     for TASK_NAME in fever #openbook #sst2 fever_mistral openbook_mistral
                     do 
-                        for STRATEGY in CS #els deixo pel feturo!! 108 jobs funciona be
+                        for STRATEGY in b1 #els deixo pel feturo!! 108 jobs funciona be
                         do
                             export SEED
                             export BUFFER_POLICY_PARAMETER

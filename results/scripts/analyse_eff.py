@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Load the data
-data = pd.read_csv('results/fever/random.csv')  # Replace with your file path
+path='results/openbook/b1'
+data = pd.read_csv(path+'.csv')  # Replace with your file path
 budgets = [1000, 1500, 2000, 2500, 3000, 3500]
 
 # Define conditions
@@ -16,15 +17,15 @@ conditions = {
     'Replay (50%)': {'args/buffer_percent': 0.5, 'args/ewc': 'no', 'args/incremental': 'yes'}
 }
 
-conditions_strategies = {
-    'FR': {'args/strategy': 'b1', 'args/buffer_percent': 0.5},
-    'MS': {'args/strategy': 'BT', 'args/buffer_percent': 0.5},
-    'EN': {'args/strategy': 'EN', 'args/buffer_percent': 0.5},
-    'CS': {'args/strategy': 'CS', 'args/buffer_percent': 0.5},
-    'QBC': {'args/strategy': 'MV', 'args/buffer_percent': 0.5}
-}
+# conditions_strategies = {
+#     'FR': {'args/strategy': 'b1', 'args/buffer_percent': 0.5},
+#     'MS': {'args/strategy': 'BT', 'args/buffer_percent': 0.5},
+#     'EN': {'args/strategy': 'EN', 'args/buffer_percent': 0.5},
+#     'CS': {'args/strategy': 'CS', 'args/buffer_percent': 0.5},
+#     'QBC': {'args/strategy': 'MV', 'args/buffer_percent': 0.5}
+# }
 
-conditions=conditions_strategies
+# conditions=conditions_strategies
 
 # Function to extract budget values from column names
 def extract_budgets(data):
@@ -150,4 +151,7 @@ axs[1, 1].legend(fontsize=12)
 axs[1, 1].tick_params(axis='both', which='major', labelsize=12)
 
 plt.tight_layout()
-plt.show()
+# Save the figure to a file
+plt.savefig(path+'.png')
+plt.savefig(path+'.pdf')
+plt.close()
