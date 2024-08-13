@@ -3,12 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-# Load the data
-path = 'results/isear/label_shift'
-data = pd.read_csv(path + '.csv')  # Replace with your file path
+# Load the data for multiple datasets
+datasets = ['isear', 'openbook', 'polarity', 'fever']
+path_base = 'results/{}/all_data'
+all_data = {dataset: pd.read_csv(path_base.format(dataset) + '.csv') for dataset in datasets}
+
 budgets = [1000, 1500, 2000, 2500, 3000, 3500]
 
-# Define conditions
+# Define conditions and strategies (unchanged)
 conditions = {
     'Complete re-training': {'args/buffer_percent': 1.0, 'args/ewc': 'no', 'args/incremental': 'no'},
     'Incremental': {'args/buffer_percent': 0.0, 'args/ewc': 'no', 'args/incremental': 'yes'},
@@ -17,44 +19,57 @@ conditions = {
     'Replay (50%)': {'args/buffer_percent': 0.5, 'args/ewc': 'no', 'args/incremental': 'yes'}
 }
 
-# Define strategies
 strategies = ['b1', 'BT', 'EN', 'CS', 'MV']
 
-# Function to extract budget values from column names
+# Function to extract budget values from column names (unchanged)
 def extract_budgets(data):
     return [f"online/{budget}-gold_0 (average)" for budget in budgets]
 
-# Function to aggregate accuracy and std across seeds for a given condition, strategy, and budget
-def aggregate_accuracy(data, condition, strategy, budget_columns):
-    filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
-    means = [filtered_data[col].mean() for col in budget_columns]
-    stds = [filtered_data[col].std() for col in budget_columns]
-    return means, stds
+# Modified aggregation functions to work with multiple datasets
+def aggregate_accuracy_multi(all_data, condition, strategy, budget_columns):
+    all_means = []
+    all_stds = []
+    for data in all_data.values():
+        filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
+        means = [filtered_data[col].mean() for col in budget_columns]
+        stds = [filtered_data[col].std() for col in budget_columns]
+        all_means.append(means)
+        all_stds.append(stds)
+    return np.mean(all_means, axis=0), np.mean(all_stds, axis=0)
 
-# Function to aggregate test accuracy and std
-def aggregate_accuracy_test(data, condition, strategy):
-    filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
-    means = [filtered_data[filtered_data['args/budget'] == budget]['test/test_gold_acc (last)'].mean() for budget in budgets]
-    stds = [filtered_data[filtered_data['args/budget'] == budget]['test/test_gold_acc (last)'].std() for budget in budgets]
-    return means, stds
+def aggregate_accuracy_test_multi(all_data, condition, strategy):
+    all_means = []
+    all_stds = []
+    for data in all_data.values():
+        filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
+        means = [filtered_data[filtered_data['args/budget'] == budget]['test/test_gold_acc (last)'].mean() for budget in budgets]
+        stds = [filtered_data[filtered_data['args/budget'] == budget]['test/test_gold_acc (last)'].std() for budget in budgets]
+        all_means.append(means)
+        all_stds.append(stds)
+    return np.mean(all_means, axis=0), np.mean(all_stds, axis=0)
 
-# Function to aggregate efficiency metrics and std
-def aggregate_eff(data, condition, strategy, flops_col='train/total_flops (last)', time_col='train/total_time_elapsed (last)'):
-    filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
-    flops_means = [filtered_data[filtered_data['args/budget'] == budget][flops_col].mean() for budget in budgets]
-    flops_stds = [filtered_data[filtered_data['args/budget'] == budget][flops_col].std() for budget in budgets]
-    time_means = [filtered_data[filtered_data['args/budget'] == budget][time_col].mean() for budget in budgets]
-    time_stds = [filtered_data[filtered_data['args/budget'] == budget][time_col].std() for budget in budgets]
-    return (flops_means, flops_stds), (time_means, time_stds)
+def aggregate_eff_multi(all_data, condition, strategy, flops_col='train/total_flops (last)', time_col='train/total_time_elapsed (last)'):
+    all_flops_means, all_flops_stds, all_time_means, all_time_stds = [], [], [], []
+    for data in all_data.values():
+        filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
+        flops_means = [filtered_data[filtered_data['args/budget'] == budget][flops_col].mean() for budget in budgets]
+        flops_stds = [filtered_data[filtered_data['args/budget'] == budget][flops_col].std() for budget in budgets]
+        time_means = [filtered_data[filtered_data['args/budget'] == budget][time_col].mean() for budget in budgets]
+        time_stds = [filtered_data[filtered_data['args/budget'] == budget][time_col].std() for budget in budgets]
+        all_flops_means.append(flops_means)
+        all_flops_stds.append(flops_stds)
+        all_time_means.append(time_means)
+        all_time_stds.append(time_stds)
+    return (np.mean(all_flops_means, axis=0), np.mean(all_flops_stds, axis=0)), (np.mean(all_time_means, axis=0), np.mean(all_time_stds, axis=0))
 
-# Function to calculate AUC using the trapezoidal rule
+# Function to calculate AUC (unchanged)
 def calculate_auc(num, den=budgets):
     auc = np.trapz(num, den)
     normalized_auc = auc / (den[-1] - den[0])
     return round(normalized_auc, 3)
 
-# Extract budget columns
-budget_columns = extract_budgets(data)
+# Extract budget columns (use the first dataset as reference)
+budget_columns = extract_budgets(list(all_data.values())[0])
 
 # Aggregate data, generate tables, and calculate AUC
 auc_values_online = defaultdict(dict)
@@ -65,9 +80,9 @@ aggregated_data = defaultdict(dict)
 
 for condition_name, condition in conditions.items():
     for strategy in strategies:
-        aggregated_accuracies, accuracies_std = aggregate_accuracy(data, condition, strategy, budget_columns)
-        aggregated_accuracies_test, accuracies_test_std = aggregate_accuracy_test(data, condition, strategy)
-        (total_flops, flops_std), (total_time, time_std) = aggregate_eff(data, condition, strategy)
+        aggregated_accuracies, accuracies_std = aggregate_accuracy_multi(all_data, condition, strategy, budget_columns)
+        aggregated_accuracies_test, accuracies_test_std = aggregate_accuracy_test_multi(all_data, condition, strategy)
+        (total_flops, flops_std), (total_time, time_std) = aggregate_eff_multi(all_data, condition, strategy)
         
         aggregated_data[condition_name][strategy] = pd.DataFrame({
             'budget': budgets,
@@ -88,14 +103,14 @@ for condition_name, condition in conditions.items():
 
 # Print AUC values
 for metric, auc_values in [('Online', auc_values_online), ('Test', auc_values_test), ('Flops', auc_values_flops), ('Time', auc_values_time)]:
-    print(f'{metric} AUC')
+    print(f'{metric} AUC (Average across datasets)')
     for condition in conditions:
         print(f'{condition}:')
         for strategy in strategies:
             print(f'  {strategy}: {auc_values[condition][strategy]}')
     print()
 
-# Plotting
+# Plotting (unchanged)
 fig, axs = plt.subplots(2, 2, figsize=(20, 20))
 
 colors = plt.cm.rainbow(np.linspace(0, 1, len(conditions) * len(strategies)))
@@ -108,7 +123,7 @@ for condition_name in conditions:
         axs[0, 0].errorbar(budgets, df['online'], yerr=df['online_std'], fmt='-o', capsize=0, label=f"{condition_name} - {strategy}", color=colors[color_index])
         color_index += 1
 
-axs[0, 0].set_title("Online Accuracy Comparison", fontsize=16)
+axs[0, 0].set_title("Online Accuracy Comparison (Average across datasets)", fontsize=16)
 axs[0, 0].set_xlabel('Budget', fontsize=14)
 axs[0, 0].set_ylabel('Online Accuracy', fontsize=14)
 axs[0, 0].legend(fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
@@ -122,7 +137,7 @@ for condition_name in conditions:
         axs[0, 1].errorbar(budgets, df['test'], yerr=df['test_std'], fmt='-o', capsize=0, label=f"{condition_name} - {strategy}", color=colors[color_index])
         color_index += 1
 
-axs[0, 1].set_title("Test Accuracy Comparison", fontsize=16)
+axs[0, 1].set_title("Test Accuracy Comparison (Average across datasets)", fontsize=16)
 axs[0, 1].set_xlabel('Budget', fontsize=14)
 axs[0, 1].set_ylabel('Test Accuracy', fontsize=14)
 axs[0, 1].legend(fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
@@ -136,7 +151,7 @@ for condition_name in conditions:
         axs[1, 0].errorbar(budgets, df['total_flops'], yerr=df['flops_std'], fmt='-o', capsize=0, label=f"{condition_name} - {strategy}", color=colors[color_index])
         color_index += 1
 
-axs[1, 0].set_title("FLOPS Comparison", fontsize=16)
+axs[1, 0].set_title("FLOPS Comparison (Average across datasets)", fontsize=16)
 axs[1, 0].set_xlabel('Budget', fontsize=14)
 axs[1, 0].set_ylabel('Flops', fontsize=14)
 axs[1, 0].legend(fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
@@ -150,7 +165,7 @@ for condition_name in conditions:
         axs[1, 1].errorbar(budgets, df['total_time'], yerr=df['time_std'], fmt='-o', capsize=0, label=f"{condition_name} - {strategy}", color=colors[color_index])
         color_index += 1
 
-axs[1, 1].set_title("Training Time Comparison", fontsize=16)
+axs[1, 1].set_title("Training Time Comparison (Average across datasets)", fontsize=16)
 axs[1, 1].set_xlabel('Budget', fontsize=14)
 axs[1, 1].set_ylabel('Training Time', fontsize=14)
 axs[1, 1].legend(fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
@@ -158,6 +173,6 @@ axs[1, 1].tick_params(axis='both', which='major', labelsize=12)
 
 plt.tight_layout()
 # Save the figure to a file
-plt.savefig(path + '.png', bbox_inches='tight')
-# plt.savefig(path + '.pdf', bbox_inches='tight')
+plt.savefig('results/average_across_datasets.png', bbox_inches='tight')
+# plt.savefig('results/average_across_datasets.pdf', bbox_inches='tight')
 plt.close()

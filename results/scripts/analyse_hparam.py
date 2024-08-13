@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Load the data
-data = pd.read_csv('results/isear/online (5).csv')  # Replace with your file path
+data = pd.read_csv('results/fever/hard.csv')  # Replace with your file path
 budgets = [1000, 1500, 2000, 2500, 3000, 3500]
 
 # Function to extract budget values from column names
@@ -82,14 +82,14 @@ def analyze_hyperparameter(data, hyperparameter, hyperparameter_values, budgets)
     return auc_values_online, auc_values_test, aggregated_data, strategies
 
 # Parameters
-hyperparameter = 'args/ewc_lambda'
-hyperparameter_values = [0.2, 0.6, 0.8]
+# hyperparameter = 'args/ewc_lambda'
+# hyperparameter_values = [0.2, 0.6, 0.8]
 
 # hyperparameter = 'args/buffer_percent'
 # hyperparameter_values = [0.25, 0.5, 0.75]
 
-# hyperparameter=None
-# hyperparameter_values=[]
+hyperparameter=None
+hyperparameter_values=[]
 
 # Analyze hyperparameter
 auc_values_online, auc_values_test, aggregated_data, strategies = analyze_hyperparameter(data, hyperparameter, hyperparameter_values, budgets)

@@ -171,7 +171,7 @@ class Task:
 
         online_dataloader = DataLoader(
             processed_data["train"],
-            shuffle=True,
+            # shuffle=True,
             collate_fn=data_collator,
             batch_size=1,
         )
@@ -244,13 +244,13 @@ def make_datacollator(args, tokenizer, processed_data, model=None):
     aux = processed_data.train_test_split(test_size=0.1)
     train_dataloader = DataLoader(
         aux["train"],
-        shuffle=True,
+        # shuffle=True,
         collate_fn=data_collator,
         batch_size=args.per_device_train_batch_size,
     )
     eval_dataloader = DataLoader(
         aux["test"],
-        shuffle=True,
+        # shuffle=True,
         collate_fn=data_collator,
         batch_size=args.per_device_eval_batch_size,
     )

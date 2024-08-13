@@ -4,14 +4,14 @@ export TARGET=llm
 export DATA_PATH=/work/sc126/sc126/s2598967/cachellm/cache_llm/
 export PART=cirrus
 export BASE_MODEL=t5-base
-export INCREMENTAL=yes
+export INCREMENTAL=no
 # export EWC=yes
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
-    for BUFFER_POLICY_PARAMETER in random
+    for BUFFER_POLICY_PARAMETER in default
     do
-        for BUFFER_PERCENT in 0.5
+        for BUFFER_PERCENT in 1.0
         do
             for RETRAIN_FREQ in 1000
             do
@@ -19,7 +19,7 @@ do
                 do  # cr ag_news isear_llama rt-polarity_llama isear_mistral rt-polarity_mistral
                     for TASK_NAME in isear #openbook #sst2 fever_mistral openbook_mistral
                     do 
-                        for STRATEGY in MV #els deixo pel feturo!! 108 jobs funciona be
+                        for STRATEGY in b1 BT #els deixo pel feturo!! 108 jobs funciona be
                         do
                             export SEED
                             export BUFFER_POLICY_PARAMETER
@@ -29,7 +29,7 @@ do
                             export BUDGET
                             export RETRAIN_FREQ
                             export N_INIT=100
-                            export TAGS=BATCH_INC_LINEAR
+                            export TAGS=ISEAR_LABEL
                             export CHECKPOINT=${SEED}_${N_INIT}
 
                             if [ $STRATEGY == "b1" ]
