@@ -91,10 +91,10 @@ def create_strategy_plot(strategy):
     colors = plt.cm.rainbow(np.linspace(0, 1, len(conditions)))
     
     for i, (plot_metric, title) in enumerate([
-        ('online', f'Online Accuracy'),
-        ('test', f'Test Accuracy'),
-        ('total_flops', f'FLOPS'),
-        ('total_time', f'Training Time')
+        ('online', f'Accuracy (online)'),
+        ('test', f'Accuracy (test)'),
+        ('total_flops', f'FLOPs (E+15)'),
+        ('total_time', f'Training Time (s)')
     ]):
         ax = axs[i // 2, i % 2]
         for j, condition_name in enumerate(conditions):
@@ -103,15 +103,17 @@ def create_strategy_plot(strategy):
                         yerr=data[f'{plot_metric}_std'], 
                         fmt='-o', capsize=0, label=condition_name, color=colors[j])
         
-        ax.set_title(f"{title}", fontsize=16)
-        ax.set_xlabel('Budget', fontsize=14)
-        ax.set_ylabel(plot_metric.replace('_', ' ').title(), fontsize=14)
-        ax.legend(fontsize=10)
-        ax.tick_params(axis='both', which='major', labelsize=12)
-        ax.grid(True, linestyle='--', alpha=0.7)
+        # ax.set_title(f"{title}", fontsize=16)
+        if i>=2:
+            ax.set_xlabel('Budget (number of LLM calls)', fontsize=20)
+        ax.set_ylabel(title, fontsize=20)
+        if plot_metric=='online':
+            ax.legend(fontsize=24, loc='lower right')
+        ax.tick_params(axis='both', which='major', labelsize=16)
+        # ax.grid(True, linestyle='--', alpha=0.7)
     
     plt.tight_layout()
-    plt.savefig(f'results/{strategy}_comparison.png', bbox_inches='tight')
+    plt.savefig(f'results/plots/strategies/{strategy}_comparison.png', bbox_inches='tight')
     plt.close()
 
 # Create and save individual strategy plots
@@ -137,7 +139,7 @@ fig, axs = plt.subplots(2, 2, figsize=(20, 20))
 colors = plt.cm.rainbow(np.linspace(0, 1, len(conditions)))
 
 metrics = ['online', 'test', 'total_flops', 'total_time']
-titles = ['Online Accuracy', 'Test Accuracy', 'FLOPS', 'Training Time']
+titles = ['Accuracy (online)', 'Accuracy (test)', 'FLOPs (E+15)', 'Training Time (s)']
 
 for i, (metric, title) in enumerate(zip(metrics, titles)):
     ax = axs[i // 2, i % 2]
@@ -146,13 +148,16 @@ for i, (metric, title) in enumerate(zip(metrics, titles)):
                     yerr=averaged_data[condition_name][f'{metric}_std'], 
                     fmt='-o', capsize=0, label=condition_name, color=colors[j])
 
-    ax.set_title(f"{title}", fontsize=16)
-    ax.set_xlabel('Budget', fontsize=14)
-    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=14)
-    ax.legend(fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
-    ax.tick_params(axis='both', which='major', labelsize=12)
+    # ax.set_title(f"{title}", fontsize=16)
+    if i>=2:
+        ax.set_xlabel('Budget (number of LLM calls)', fontsize=20)
+    ax.set_ylabel(title, fontsize=20)
+    if metric=='online':
+        ax.legend(fontsize=24, loc='lower right')
+
+    ax.tick_params(axis='both', which='major', labelsize=16)
 
 plt.tight_layout()
 # Save the overall comparison figure
-plt.savefig('results/average_across_datasets_and_strategies.png', bbox_inches='tight')
+plt.savefig('results/all_data,strat.png', bbox_inches='tight')
 plt.close()

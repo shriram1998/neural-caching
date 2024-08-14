@@ -7,8 +7,6 @@ export BASE_MODEL=t5-base
 export INCREMENTAL=no
 # export EWC=yes
 
-#random, inc, ewc, replay, compl b1
-
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
@@ -22,7 +20,7 @@ do
                 do  # cr ag_news isear_llama rt-polarity_llama isear_mistral rt-polarity_mistral
                     for TASK_NAME in rt-polarity #openbook #sst2 fever_mistral openbook_mistral
                     do 
-                        for STRATEGY in b1 #els deixo pel feturo!! 108 jobs funciona be
+                        for STRATEGY in BT #els deixo pel feturo!! 108 jobs funciona be
                         do
                             export SEED
                             export BUFFER_POLICY_PARAMETER
@@ -38,32 +36,32 @@ do
                             if [ $STRATEGY == "b1" ]
                             then
                                 export P_STRAT=0
-                                sbatch --begin=now+5hours --export=ALL scripts/sub_$PART.sh
+                                sbatch --export=ALL scripts/sub_$PART.sh
                             fi
                             if [ $STRATEGY == "b2" ]
                             then
                                 export P_STRAT=0
-                                sbatch --begin=now+5hours --export=ALL scripts/sub_$PART.sh
+                                sbatch --export=ALL scripts/sub_$PART.sh
                             fi
                             if [ $STRATEGY == "BT" ]
                             then 
                                 for P_STRAT in 5
                                 do
                                     export P_STRAT
-                                    sbatch --begin=now+5hours --export=ALL scripts/sub_$PART.sh
+                                    sbatch --export=ALL scripts/sub_$PART.sh
                                 done
                             fi
                             if [ $STRATEGY == "MV" ]
                             then
                                 export P_STRAT=3
-                                sbatch --begin=now+5hours --export=ALL scripts/sub_$PART.sh
+                                sbatch --export=ALL scripts/sub_$PART.sh
                             fi
                             if [ $STRATEGY == "EN" ]
                             then
                                 for P_STRAT in 0.5
                                 do
                                     export P_STRAT
-                                    sbatch --begin=now+5hours --export=ALL scripts/sub_$PART.sh
+                                    sbatch --export=ALL scripts/sub_$PART.sh
                                 done
                             fi 
                             if [ $STRATEGY == "CS" ]
@@ -72,7 +70,7 @@ do
                                 do
                                     export P_STRAT
                                     export EMBED=t5
-                                    sbatch --begin=now+5hours --export=ALL scripts/sub_$PART.sh
+                                    sbatch --export=ALL scripts/sub_$PART.sh
                                 done
                             fi
                         done

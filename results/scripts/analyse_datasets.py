@@ -20,7 +20,7 @@ conditions = {
     'Replay (50%)': {'args/buffer_percent': 0.5, 'args/ewc': 'no', 'args/incremental': 'yes'}
 }
 
-strategies = ['b1', 'BT', 'EN', 'CS', 'MV']
+strategies = ['b1']
 
 # Function definitions (unchanged)
 def extract_budgets(data):

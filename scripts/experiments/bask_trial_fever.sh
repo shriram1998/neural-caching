@@ -5,16 +5,15 @@ export DATA_PATH=/work/sc126/sc126/s2598967/cachellm/cache_llm/
 export PART=cirrus
 export BASE_MODEL=t5-base
 export INCREMENTAL=yes
-export SOFT_LABELS=0
-
 # export EWC=yes
 
+#random, inc, ewc, compl, replay (b1)
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
-    for BUFFER_POLICY_PARAMETER in random
+    for BUFFER_POLICY_PARAMETER in default
     do
-        for BUFFER_PERCENT in 0.5
+        for BUFFER_PERCENT in 1.0
         do
             for RETRAIN_FREQ in 1000
             do
