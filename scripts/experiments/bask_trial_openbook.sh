@@ -4,17 +4,17 @@ export TARGET=llm
 export DATA_PATH=/work/sc126/sc126/s2598967/cachellm/cache_llm/
 export PART=cirrus
 export BASE_MODEL=t5-base
-export INCREMENTAL=yes
-export EWC=yes
+export INCREMENTAL=no
+# export EWC=yes
 
-#random, inc, ewc (check),
+#random, inc, ewc (check), replay
 
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
 for SEED in 0 1 2
 do
     for BUFFER_POLICY_PARAMETER in default
     do
-        for BUFFER_PERCENT in 0.0
+        for BUFFER_PERCENT in 1.0
         do
             for RETRAIN_FREQ in 1000
             do
