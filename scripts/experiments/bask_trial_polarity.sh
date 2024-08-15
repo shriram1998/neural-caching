@@ -8,7 +8,7 @@ export INCREMENTAL=no
 # export EWC=yes
 
 # HE ENVIAT MASSES JOBS, AIXI HO HE DEIXAT!
-for SEED in 0 1 2
+for SEED in 2
 do
     for BUFFER_POLICY_PARAMETER in default
     do

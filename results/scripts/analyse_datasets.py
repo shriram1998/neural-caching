@@ -85,6 +85,9 @@ for dataset in datasets:
                 axis=0
             )
 
+metrics = ['online', 'test', 'total_flops', 'total_time']
+y_labels = ['Accuracy (online)', 'Accuracy (test)', 'FLOPs (E+16)', 'Training Time (s)']
+
 # Function to create plots for each metric across all datasets
 def create_metric_plots(metric, ylabel):
     fig, axs = plt.subplots(2, 2, figsize=(20, 20))
@@ -115,19 +118,19 @@ def create_metric_plots(metric, ylabel):
             
             ax.errorbar(budgets[:len(data)], data, yerr=std, fmt='-o', capsize=0, label=condition_name, color=colors[j])
         
-        ax.set_title(f"{dataset.upper()}", fontsize=16)
-        ax.set_xlabel('Budget (number of LLM calls)', fontsize=14)
-        ax.set_ylabel(ylabel, fontsize=14)
-        ax.legend(fontsize=10)
-        ax.tick_params(axis='both', which='major', labelsize=12)
-        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.set_title(f"{dataset.upper()}", fontsize=20)
+        if i>=2:
+            ax.set_xlabel('Budget (number of LLM calls)', fontsize=18)
+        if i%2==0:
+            ax.set_ylabel(ylabel, fontsize=18)
+        if i==0:
+            ax.legend(fontsize=24, loc='best')
+        ax.tick_params(axis='both', which='major', labelsize=18)
+        # ax.grid(True, linestyle='--', alpha=0.7)
     
     plt.tight_layout()
-    plt.savefig(f'results/{metric}_comparison_all_datasets.png', bbox_inches='tight')
+    plt.savefig(f'results/plots/metrics/b1_{metric}_comparison_all_datasets.png', bbox_inches='tight')
     plt.close()
 
-# Create and save plots for each metric
-create_metric_plots('online', 'Accuracy (online)')
-create_metric_plots('test', 'Accuracy (test)')
-create_metric_plots('total_flops', 'FLOPS')
-create_metric_plots('total_time', 'Time (seconds)')
+for metric, ylabel in zip(metrics, y_labels):
+    create_metric_plots(metric, ylabel)

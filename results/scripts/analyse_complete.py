@@ -85,17 +85,16 @@ for condition_name, condition in conditions.items():
             'total_time_std': time_std
         }
 
+metrics = ['online', 'test', 'total_flops', 'total_time']
+y_labels = ['Accuracy (online)', 'Accuracy (test)', 'FLOPs (E+16)', 'Training Time (s)']
+titles = ['Online Accuracy', 'Test Accuracy', 'FLOPs', 'Training Time']
+
 # Function to create individual strategy plots
 def create_strategy_plot(strategy):
     fig, axs = plt.subplots(2, 2, figsize=(20, 20))
     colors = plt.cm.rainbow(np.linspace(0, 1, len(conditions)))
     
-    for i, (plot_metric, title) in enumerate([
-        ('online', f'Accuracy (online)'),
-        ('test', f'Accuracy (test)'),
-        ('total_flops', f'FLOPs (E+15)'),
-        ('total_time', f'Training Time (s)')
-    ]):
+    for i, (plot_metric, y_label, title) in enumerate(zip(metrics, y_labels, titles)):
         ax = axs[i // 2, i % 2]
         for j, condition_name in enumerate(conditions):
             data = aggregated_data[condition_name][strategy]
@@ -103,13 +102,13 @@ def create_strategy_plot(strategy):
                         yerr=data[f'{plot_metric}_std'], 
                         fmt='-o', capsize=0, label=condition_name, color=colors[j])
         
-        # ax.set_title(f"{title}", fontsize=16)
+        ax.set_title(f"{title}", fontsize=20)
         if i>=2:
-            ax.set_xlabel('Budget (number of LLM calls)', fontsize=20)
-        ax.set_ylabel(title, fontsize=20)
+            ax.set_xlabel('Budget (number of LLM calls)', fontsize=18)
+        ax.set_ylabel(y_label, fontsize=18)
         if plot_metric=='online':
             ax.legend(fontsize=24, loc='lower right')
-        ax.tick_params(axis='both', which='major', labelsize=16)
+        ax.tick_params(axis='both', which='major', labelsize=18)
         # ax.grid(True, linestyle='--', alpha=0.7)
     
     plt.tight_layout()
@@ -138,24 +137,21 @@ fig, axs = plt.subplots(2, 2, figsize=(20, 20))
 
 colors = plt.cm.rainbow(np.linspace(0, 1, len(conditions)))
 
-metrics = ['online', 'test', 'total_flops', 'total_time']
-titles = ['Accuracy (online)', 'Accuracy (test)', 'FLOPs (E+15)', 'Training Time (s)']
-
-for i, (metric, title) in enumerate(zip(metrics, titles)):
+for i, (metric, y_label, title) in enumerate(zip(metrics, y_labels, titles)):
     ax = axs[i // 2, i % 2]
     for j, condition_name in enumerate(conditions):
         ax.errorbar(budgets, averaged_data[condition_name][metric], 
                     yerr=averaged_data[condition_name][f'{metric}_std'], 
                     fmt='-o', capsize=0, label=condition_name, color=colors[j])
 
-    # ax.set_title(f"{title}", fontsize=16)
+    ax.set_title(f"{title}", fontsize=20)
     if i>=2:
         ax.set_xlabel('Budget (number of LLM calls)', fontsize=20)
-    ax.set_ylabel(title, fontsize=20)
+    ax.set_ylabel(y_label, fontsize=18)
     if metric=='online':
         ax.legend(fontsize=24, loc='lower right')
 
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=18)
 
 plt.tight_layout()
 # Save the overall comparison figure
