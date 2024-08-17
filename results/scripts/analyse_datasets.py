@@ -87,7 +87,7 @@ for dataset in datasets:
 
 metrics = ['online', 'test', 'total_flops', 'total_time']
 y_labels = ['Accuracy (online)', 'Accuracy (test)', 'FLOPs (E+16)', 'Training Time (s)']
-
+dataset_names = ['ISEAR', 'OPENBOOK', 'RT-POLARITY', 'FEVER']
 # Function to create plots for each metric across all datasets
 def create_metric_plots(metric, ylabel):
     fig, axs = plt.subplots(2, 2, figsize=(20, 20))
@@ -118,7 +118,7 @@ def create_metric_plots(metric, ylabel):
             
             ax.errorbar(budgets[:len(data)], data, yerr=std, fmt='-o', capsize=0, label=condition_name, color=colors[j])
         
-        ax.set_title(f"{dataset.upper()}", fontsize=20)
+        ax.set_title(dataset_names[i], fontsize=20)
         if i>=2:
             ax.set_xlabel('Budget (number of LLM calls)', fontsize=18)
         if i%2==0:
