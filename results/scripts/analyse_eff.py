@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Load the data
-path = 'results/isear/label_shift'
+path = 'results/fever/label'
 data = pd.read_csv(path + '.csv')  # Replace with your file path
 budgets = [1000, 1500, 2000, 2500, 3000, 3500]
 
@@ -18,7 +18,7 @@ conditions = {
 }
 
 # Define strategies
-strategies = ['b1', 'BT', 'EN', 'CS', 'MV']
+strategies = ['b1', 'BT']
 
 # Function to extract budget values from column names
 def extract_budgets(data):

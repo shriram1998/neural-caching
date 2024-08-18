@@ -1,0 +1,11 @@
+export PART=cirrus
+export DATA_PATH=/work/sc126/sc126/s2598967/cachellm/cache_llm/
+export TRANSFORMERS_CACHE=/work/sc126/sc126/s2598967/.cache/huggingface
+export PYTORCH_KERNEL_CACHE_PATH=/work/sc126/sc126/s2598967/.package_cache/kernel_cache
+export HF_HOME=$TRANSFORMERS_CACHE
+
+export NEPTUNE_MODE='offline'
+export NEPTUNE_API_TOKEN=eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI5Y2YxNDhkNy00NDk3LTQxZWMtYjk4Ny1hOWZmMDczYTczYmIifQ==
+export NEPTUNE_PROJECT=cache/online
+export PROJECT_NAME_NEPTUNE=$NEPTUNE_PROJECT
+export API_TOKEN_NEPTUNE=$NEPTUNE_API_TOKEN
