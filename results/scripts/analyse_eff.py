@@ -4,21 +4,26 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Load the data
-path = 'results/fever/label'
+path = 'results/isear/random_eviction'
 data = pd.read_csv(path + '.csv')  # Replace with your file path
 budgets = [1000, 1500, 2000, 2500, 3000, 3500]
 
 # Define conditions
+# conditions = {
+#     'Complete re-training': {'args/buffer_percent': 1.0, 'args/ewc': 'no', 'args/incremental': 'no'},
+#     'Incremental': {'args/buffer_percent': 0.0, 'args/incremental': 'yes'},
+#     'EWC': {'args/buffer_percent': 0.0, 'args/ewc': 'yes', 'args/incremental': 'yes'},
+#     'Replay': {'args/buffer_percent': 1.0, 'args/incremental': 'yes'},
+#     'Replay (50%)': {'args/buffer_percent': 0.5, 'args/ewc': 'no', 'args/incremental': 'yes'}
+# }
 conditions = {
-    'Complete re-training': {'args/buffer_percent': 1.0, 'args/ewc': 'no', 'args/incremental': 'no'},
-    'Incremental': {'args/buffer_percent': 0.0, 'args/ewc': 'no', 'args/incremental': 'yes'},
-    'EWC': {'args/buffer_percent': 0.0, 'args/ewc': 'yes', 'args/incremental': 'yes'},
-    'Replay': {'args/buffer_percent': 1.0, 'args/ewc': 'no', 'args/incremental': 'yes'},
-    'Replay (50%)': {'args/buffer_percent': 0.5, 'args/ewc': 'no', 'args/incremental': 'yes'}
+    '0.25': {'args/buffer_percent': 0.25},
+    '0.5': {'args/buffer_percent': 0.5},
+    '0.75': {'args/buffer_percent': 0.75},
 }
 
 # Define strategies
-strategies = ['b1', 'BT']
+strategies = ['b1']
 
 # Function to extract budget values from column names
 def extract_budgets(data):
@@ -41,11 +46,27 @@ def aggregate_accuracy_test(data, condition, strategy):
 # Function to aggregate efficiency metrics and std
 def aggregate_eff(data, condition, strategy, flops_col='train/total_flops (last)', time_col='train/total_time_elapsed (last)'):
     filtered_data = data.loc[(data[list(condition)] == pd.Series(condition)).all(axis=1) & (data['args/strategy'] == strategy)]
-    flops_means = [filtered_data[filtered_data['args/budget'] == budget][flops_col].mean() for budget in budgets]
-    flops_stds = [filtered_data[filtered_data['args/budget'] == budget][flops_col].std() for budget in budgets]
-    time_means = [filtered_data[filtered_data['args/budget'] == budget][time_col].mean() for budget in budgets]
-    time_stds = [filtered_data[filtered_data['args/budget'] == budget][time_col].std() for budget in budgets]
+    
+    flops_means = []
+    flops_stds = []
+    time_means = []
+    time_stds = []
+    
+    for budget in budgets:
+        flops_data = filtered_data[filtered_data['args/budget'] == budget][flops_col]
+        time_data = filtered_data[filtered_data['args/budget'] == budget][time_col]
+        
+        # Filter out rows where flops or time are null or zero
+        valid_flops_data = flops_data[(flops_data.notnull()) & (flops_data != 0)]
+        valid_time_data = time_data[(time_data.notnull()) & (time_data != 0)]
+        
+        flops_means.append(valid_flops_data.mean() if not valid_flops_data.empty else np.nan)
+        flops_stds.append(valid_flops_data.std() if not valid_flops_data.empty else np.nan)
+        time_means.append(valid_time_data.mean() if not valid_time_data.empty else np.nan)
+        time_stds.append(valid_time_data.std() if not valid_time_data.empty else np.nan)
+    
     return (flops_means, flops_stds), (time_means, time_stds)
+
 
 # Function to calculate AUC using the trapezoidal rule
 def calculate_auc(num, den=budgets):
