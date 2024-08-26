@@ -67,6 +67,8 @@ class student:
         self.total_time_elapsed=0
         self.fisher_matrix=None
         self.original_params=None
+        self.optimizer=None
+        self.lr_scheduler=None
         self.init_model()
 
     def init_model(self):
@@ -82,24 +84,6 @@ class student:
             },
         )
         return
-    
-    def init_optimizer_continual(self):
-        optimizer = load_optimizer(self.model, self.args, self.learning_rate)
-
-        #linear scheduler: inital lr to zero during training
-        #warmup=0 so no warmup phase used
-        logger.info(f" Num training steps: {self.args.num_train_epochs * self.budget_arr[-1]}")
-        lr_scheduler = get_scheduler(
-            name=self.args.lr_scheduler_type,
-            optimizer=optimizer,
-            num_warmup_steps=int(
-                self.args.warmup
-                * self.args.num_train_epochs
-                * self.budget_arr[-1]
-            ),
-            num_training_steps=self.args.num_train_epochs * self.budget_arr[-1],
-        )
-        return optimizer, lr_scheduler
 
     def init_checkpoint(self, PATH):
         self.model.load_state_dict(torch.load(PATH))
@@ -222,11 +206,11 @@ class student:
             self.init_model()
 
             # Re-initialise lr_scheduler + optimizer
-            optimizer = load_optimizer(self.model, self.args)
+            self.optimizer = load_optimizer(self.model, self.args)
 
             #linear scheduler: inital lr to zero during training
             #warmup=0 so no warmup phase used
-            lr_scheduler = get_scheduler(
+            self.lr_scheduler = get_scheduler(
                 name=self.args.lr_scheduler_type,
                 optimizer=optimizer,
                 num_warmup_steps=int(
@@ -242,8 +226,26 @@ class student:
                 ),
             )
         else:
-            logger.info(f"  Resetting optimizer and scheduler for Continual learning.")
-            optimizer, lr_scheduler = self.init_optimizer_continual()
+            if self.optimizer is None:
+                self.optimizer = load_optimizer(self.model, self.args)
+
+                #linear scheduler: inital lr to zero during training
+                #warmup=0 so no warmup phase used
+                self.lr_scheduler = get_scheduler(
+                    name=self.args.lr_scheduler_type,
+                    optimizer=optimizer,
+                    num_warmup_steps=int(
+                        self.args.warmup
+                        * self.args.num_train_epochs
+                        * len(
+                            train_dataloader.dataset
+                        ) 
+                    ),
+                    num_training_steps=self.args.num_train_epochs
+                    * len(
+                        train_dataloader.dataset
+                    ),
+                )
 
         logger.info(f"  Running task {self.task_name}")
         logger.info(f"  Num examples = {len(train_dataloader.dataset)}")
@@ -251,8 +253,8 @@ class student:
         self.data_amount = len(train_dataloader.dataset) + len(eval_dataloader.dataset) 
 
         # Move to the device
-        self.model, optimizer, lr_scheduler = self.accelerator.prepare(
-            self.model, optimizer, lr_scheduler
+        self.model, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
+            self.model, self.optimizer, self.lr_scheduler
         )
 
         # for param in self.model.parameters():
@@ -271,8 +273,8 @@ class student:
                 model=self.model,
                 train_dataloader=train_dataloader,
                 accelerator=self.accelerator,
-                lr_scheduler=lr_scheduler,
-                optimizer=optimizer,
+                lr_scheduler=self.lr_scheduler,
+                optimizer=self.optimizer,
                 args=self.args,
                 fisher_matrix=self.fisher_matrix,
                 original_params=self.original_params,

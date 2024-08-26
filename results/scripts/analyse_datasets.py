@@ -20,7 +20,7 @@ conditions = {
     'Replay (50%)': {'args/buffer_percent': 0.5, 'args/ewc': 'no', 'args/incremental': 'yes'}
 }
 
-strategies = ['b1']
+strategies = ['BT']
 
 # Function definitions (unchanged)
 def extract_budgets(data):
@@ -129,7 +129,7 @@ def create_metric_plots(metric, ylabel):
         # ax.grid(True, linestyle='--', alpha=0.7)
     
     plt.tight_layout()
-    plt.savefig(f'results/plots/metrics/b1_{metric}_comparison_all_datasets.png', bbox_inches='tight')
+    plt.savefig(f'results/plots/metrics/BT_{metric}_comparison_all_datasets.png', bbox_inches='tight')
     plt.close()
 
 for metric, ylabel in zip(metrics, y_labels):
